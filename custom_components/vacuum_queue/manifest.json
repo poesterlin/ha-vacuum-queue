@@ -3,6 +3,7 @@
     "name": "Vacuum Queue",
     "codeowners": ["@poesterlin"],
     "config_flow": true,
+    "dependencies": ["http"],
     "documentation": "https://github.com/poesterlin/ha-vacuum-queue",
     "integration_type": "helper",
     "iot_class": "calculated",
