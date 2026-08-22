@@ -212,7 +212,9 @@ class VacuumQueueCoordinator:
             if self._current_area:
                 self._resend_pending = True
             else:
-                self._schedule_resend()
+                # Without a mapped current room there is no safe completion
+                # boundary. Defer until the tracker reports one again.
+                self._resend_pending = True
 
     async def _async_tracker_changed(self, event: Event) -> None:
         new_state = event.data.get("new_state")
@@ -231,7 +233,7 @@ class VacuumQueueCoordinator:
             self._notify()
             if self._resend_pending and self._is_cleaning():
                 self._resend_pending = False
-                await self._send_remaining_or_return()
+                self._schedule_resend()
 
     async def _async_vacuum_changed(self, event: Event) -> None:
         new_state = event.data.get("new_state")
