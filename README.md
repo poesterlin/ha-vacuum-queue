@@ -27,6 +27,18 @@ across Home Assistant restarts.
 This integration replaces scripts and automations that separately start the
 vacuum, skip rooms, or reset room helpers.
 
+## Install with HACS
+
+This repository is not in the default HACS catalog. Add it as a custom
+repository:
+
+1. Open HACS and select the three-dot menu.
+2. Select **Custom repositories**.
+3. Enter `https://github.com/poesterlin/ha-vacuum-queue`.
+4. Select **Integration** as the repository type, then select **Add**.
+5. Download **Vacuum Queue**, restart Home Assistant, and add it from
+   **Settings → Devices & services**.
+
 ## Dashboard card
 
 The integration includes a custom Lovelace card that automatically discovers

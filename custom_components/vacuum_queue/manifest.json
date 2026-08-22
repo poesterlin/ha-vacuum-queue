@@ -1,12 +1,12 @@
 {
     "domain": "vacuum_queue",
     "name": "Vacuum Queue",
-    "codeowners": ["@philip"],
+    "codeowners": ["@poesterlin"],
     "config_flow": true,
-    "documentation": "https://github.com/philip/ha-vacuum-queue",
+    "documentation": "https://github.com/poesterlin/ha-vacuum-queue",
     "integration_type": "helper",
     "iot_class": "calculated",
-    "issue_tracker": "https://github.com/philip/ha-vacuum-queue/issues",
+    "issue_tracker": "https://github.com/poesterlin/ha-vacuum-queue/issues",
     "requirements": [],
     "version": "0.1.0"
 }
