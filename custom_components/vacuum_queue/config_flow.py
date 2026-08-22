@@ -6,10 +6,11 @@ import re
 from typing import Any
 
 import voluptuous as vol
-from homeassistant import config_entries, selector
+from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_AREA_ID,
