@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
@@ -26,8 +28,20 @@ SERVICE_SCHEMA = vol.Schema({vol.Required(CONF_VACUUM_ENTITY): cv.entity_id})
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Register integration-wide services."""
+    """Register integration-wide services and frontend resources."""
     hass.data.setdefault(DOMAIN, {})
+    if not hass.data[DOMAIN].get("frontend_registered"):
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    f"/api/{DOMAIN}/static",
+                    str(Path(__file__).parent / "static"),
+                    True,
+                )
+            ]
+        )
+        hass.data[DOMAIN]["frontend_registered"] = True
+
     if hass.data[DOMAIN].get("services_registered"):
         return True
 

@@ -27,3 +27,30 @@ persisted across Home Assistant restarts.
 
 This integration replaces scripts and automations that separately start the
 vacuum, skip rooms, or reset room helpers.
+
+## Dashboard card
+
+The integration includes a custom Lovelace card that automatically discovers
+the room switches and action buttons. Add the following resource once in
+Settings → Dashboards → Resources:
+
+```yaml
+url: /api/vacuum_queue/static/vacuum-queue-card.js
+type: module
+```
+
+Then add one card to the dashboard:
+
+```yaml
+type: custom:vacuum-queue-card
+show_return_home: false
+labels:
+  rooms: Räume
+  actions: Aktionen
+  start: James starten
+  skip: Raum überspringen
+  no_current_room: Kein aktueller Raum
+```
+
+If one Vacuum Queue device exists, the card finds it automatically. With
+multiple queues, set `device_id` to the Vacuum Queue device ID.

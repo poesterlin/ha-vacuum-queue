@@ -20,7 +20,10 @@ async def async_setup_entry(
     """Create one switch per configured room."""
     coordinator: VacuumQueueCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        [VacuumQueueRoomSwitch(coordinator, area_id) for area_id in coordinator.room_ids]
+        [
+            VacuumQueueRoomSwitch(coordinator, area_id, order)
+            for order, area_id in enumerate(coordinator.room_ids)
+        ]
     )
 
 
@@ -29,9 +32,12 @@ class VacuumQueueRoomSwitch(SwitchEntity):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: VacuumQueueCoordinator, area_id: str) -> None:
+    def __init__(
+        self, coordinator: VacuumQueueCoordinator, area_id: str, order: int = 0
+    ) -> None:
         self._coordinator = coordinator
         self._area_id = area_id
+        self._order = order
         self._remove_listener = coordinator.async_add_listener(self._changed)
         self._attr_unique_id = f"{coordinator.entry_id}_{area_id}"
         self._attr_name = coordinator.room_name(area_id)
@@ -49,6 +55,11 @@ class VacuumQueueRoomSwitch(SwitchEntity):
     @property
     def is_on(self) -> bool:
         return self._coordinator.is_room_on(self._area_id)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int]:
+        """Expose configuration order to the bundled dashboard card."""
+        return {"queue_order": self._order}
 
     async def async_turn_on(self, **kwargs: object) -> None:
         await self._coordinator.handle_room_switch(self._area_id, True)
