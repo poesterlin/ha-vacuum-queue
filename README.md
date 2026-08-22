@@ -48,16 +48,9 @@ repository:
 
 ## Dashboard card
 
-The integration includes a custom Lovelace card that automatically discovers
-the room switches and action buttons. Add the following resource once in
-Settings → Dashboards → Resources:
-
-```yaml
-url: /api/vacuum_queue/static/vacuum-queue-card.js
-type: module
-```
-
-Then add one card to the dashboard:
+The integration includes a custom Lovelace card that registers itself
+automatically. After installing (or updating) the integration, restart Home
+Assistant, then add one card to the dashboard:
 
 ```yaml
 type: custom:vacuum-queue-card

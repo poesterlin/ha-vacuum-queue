@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -40,6 +41,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 )
             ]
         )
+        add_extra_js_url(hass, f"/api/{DOMAIN}/static/vacuum-queue-card.js")
         hass.data[DOMAIN]["frontend_registered"] = True
 
     if hass.data[DOMAIN].get("services_registered"):
