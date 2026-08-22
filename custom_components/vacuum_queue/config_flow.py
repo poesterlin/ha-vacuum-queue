@@ -88,7 +88,7 @@ def _rooms_from_input(
     return rooms
 
 
-class VacuumQueueConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle initial configuration."""
 
     VERSION = 1
