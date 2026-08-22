@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 import voluptuous as vol
@@ -29,7 +30,16 @@ _SEGMENT_PREFIX = "segments_"
 
 def _slugify(value: str) -> str:
     """Create the tracker-friendly default suggested by an area name."""
-    return re.sub(r"[^a-z0-9]+", "_", value.casefold()).strip("_")
+    value = value.casefold().replace("ß", "ss")
+    value = value.translate(str.maketrans({"ä": "a", "ö": "o", "ü": "u"}))
+    value = unicodedata.normalize("NFKD", value)
+    return re.sub(r"[^a-z0-9]+", "_", value).strip("_")
+
+
+def _default_match_values(name: str) -> list[str]:
+    """Suggest both the displayed tracker value and its ASCII variant."""
+    values = [name.casefold().strip(), _slugify(name)]
+    return list(dict.fromkeys(value for value in values if value))
 
 
 def _as_list(value: str | list[str] | tuple[str, ...] | None) -> list[str]:
@@ -55,7 +65,7 @@ def _room_schema(
         name = area.name if area else area_id
         old = existing.get(area_id, {})
         default_matches = ", ".join(
-            old.get(CONF_MATCH_VALUES, []) or [_slugify(name)]
+            old.get(CONF_MATCH_VALUES, []) or _default_match_values(name)
         )
         default_segments = ", ".join(
             str(segment_id) for segment_id in old.get(CONF_SEGMENT_IDS, [])
@@ -75,7 +85,9 @@ def _rooms_from_input(
     for area_id in area_ids:
         area = registry.async_get_area(area_id)
         name = area.name if area else area_id
-        raw_matches = user_input.get(f"{_MATCH_PREFIX}{area_id}", _slugify(name))
+        raw_matches = user_input.get(
+            f"{_MATCH_PREFIX}{area_id}", ", ".join(_default_match_values(name))
+        )
         raw_segments = user_input.get(f"{_SEGMENT_PREFIX}{area_id}", "")
         segment_ids = [int(value) for value in _as_list(raw_segments)]
         rooms.append(
