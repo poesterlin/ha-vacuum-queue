@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-import unicodedata
 from typing import Any
 
 import voluptuous as vol
@@ -22,23 +20,21 @@ from .const import (
     CONF_VACUUM_ENTITY,
     DOMAIN,
 )
+from .mapping import DerivedMapping, async_derive_mapping, slugify
 
 _AREA_IDS = "area_ids"
 _MATCH_PREFIX = "match_"
 _SEGMENT_PREFIX = "segments_"
 
 
-def _slugify(value: str) -> str:
-    """Create the tracker-friendly default suggested by an area name."""
-    value = value.casefold().replace("ß", "ss")
-    value = value.translate(str.maketrans({"ä": "a", "ö": "o", "ü": "u"}))
-    value = unicodedata.normalize("NFKD", value)
-    return re.sub(r"[^a-z0-9]+", "_", value).strip("_")
-
-
-def _default_match_values(name: str) -> list[str]:
-    """Suggest both the displayed tracker value and its ASCII variant."""
-    values = [name.casefold().strip(), _slugify(name)]
+def _default_match_values(
+    name: str, derived: DerivedMapping | None = None, area_id: str | None = None
+) -> list[str]:
+    """Suggest derived tracker values plus the displayed and ASCII variants."""
+    values: list[str] = []
+    if derived is not None and area_id:
+        values.extend(derived.values_by_area.get(area_id, []))
+    values.extend([name.casefold().strip(), slugify(name)])
     return list(dict.fromkeys(value for value in values if value))
 
 
@@ -55,7 +51,10 @@ def _area_ids(value: Any) -> list[str]:
 
 
 def _room_schema(
-    hass: HomeAssistant, area_ids: list[str], existing: dict[str, dict[str, Any]]
+    hass: HomeAssistant,
+    area_ids: list[str],
+    existing: dict[str, dict[str, Any]],
+    derived: DerivedMapping | None = None,
 ) -> vol.Schema:
     """Build one match/segment form row per selected area."""
     registry = ar.async_get(hass)
@@ -65,7 +64,8 @@ def _room_schema(
         name = area.name if area else area_id
         old = existing.get(area_id, {})
         default_matches = ", ".join(
-            old.get(CONF_MATCH_VALUES, []) or _default_match_values(name)
+            old.get(CONF_MATCH_VALUES, [])
+            or _default_match_values(name, derived, area_id)
         )
         default_segments = ", ".join(
             str(segment_id) for segment_id in old.get(CONF_SEGMENT_IDS, [])
@@ -78,7 +78,10 @@ def _room_schema(
 
 
 def _rooms_from_input(
-    hass: HomeAssistant, area_ids: list[str], user_input: dict[str, Any]
+    hass: HomeAssistant,
+    area_ids: list[str],
+    user_input: dict[str, Any],
+    derived: DerivedMapping | None = None,
 ) -> list[dict[str, Any]]:
     registry = ar.async_get(hass)
     rooms: list[dict[str, Any]] = []
@@ -86,7 +89,8 @@ def _rooms_from_input(
         area = registry.async_get_area(area_id)
         name = area.name if area else area_id
         raw_matches = user_input.get(
-            f"{_MATCH_PREFIX}{area_id}", ", ".join(_default_match_values(name))
+            f"{_MATCH_PREFIX}{area_id}",
+            ", ".join(_default_match_values(name, derived, area_id)),
         )
         raw_segments = user_input.get(f"{_SEGMENT_PREFIX}{area_id}", "")
         segment_ids = [int(value) for value in _as_list(raw_segments)]
@@ -101,6 +105,24 @@ def _rooms_from_input(
     return rooms
 
 
+def _rooms_from_derived(
+    hass: HomeAssistant, area_ids: list[str], derived: DerivedMapping
+) -> list[dict[str, Any]]:
+    """Build room entries fully from the vacuum's own mapping."""
+    registry = ar.async_get(hass)
+    return [
+        {
+            CONF_AREA_ID: area_id,
+            "name": (
+                area.name if (area := registry.async_get_area(area_id)) else area_id
+            ),
+            CONF_MATCH_VALUES: list(derived.values_by_area.get(area_id, [])),
+            CONF_SEGMENT_IDS: [],
+        }
+        for area_id in area_ids
+    ]
+
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle initial configuration."""
 
@@ -109,6 +131,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._base: dict[str, Any] = {}
         self._area_ids: list[str] = []
+        self._derived: DerivedMapping | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -125,6 +148,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             await self.async_set_unique_id(self._base[CONF_VACUUM_ENTITY])
             self._abort_if_unique_id_configured()
+            self._derived = async_derive_mapping(
+                self.hass, self._base[CONF_VACUUM_ENTITY]
+            )
+            if self._derived.covers(self._area_ids):
+                return self.async_create_entry(
+                    title=self._base[CONF_VACUUM_ENTITY],
+                    data={
+                        **self._base,
+                        CONF_ROOMS: _rooms_from_derived(
+                            self.hass, self._area_ids, self._derived
+                        ),
+                    },
+                )
             return await self.async_step_rooms()
 
         return self.async_show_form(step_id="user", data_schema=self._user_schema())
@@ -135,7 +171,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Map tracker values to each selected area."""
         if user_input is not None:
             try:
-                rooms = _rooms_from_input(self.hass, self._area_ids, user_input)
+                rooms = _rooms_from_input(
+                    self.hass, self._area_ids, user_input, self._derived
+                )
             except ValueError:
                 return self.async_show_form(
                     step_id="rooms",
@@ -147,7 +185,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={**self._base, CONF_ROOMS: rooms},
             )
         return self.async_show_form(
-            step_id="rooms", data_schema=_room_schema(self.hass, self._area_ids, {})
+            step_id="rooms",
+            data_schema=_room_schema(
+                self.hass, self._area_ids, {}, derived=self._derived
+            ),
         )
 
     @staticmethod
@@ -208,13 +249,21 @@ class VacuumQueueOptionsFlow(config_entries.OptionsFlowWithReload):
         existing = {
             room[CONF_AREA_ID]: room for room in settings.get(CONF_ROOMS, [])
         }
+        derived = async_derive_mapping(
+            self.hass,
+            self._base.get(CONF_VACUUM_ENTITY) or settings[CONF_VACUUM_ENTITY],
+        )
         if user_input is not None:
             try:
-                rooms = _rooms_from_input(self.hass, self._area_ids, user_input)
+                rooms = _rooms_from_input(
+                    self.hass, self._area_ids, user_input, derived
+                )
             except ValueError:
                 return self.async_show_form(
                     step_id="rooms",
-                    data_schema=_room_schema(self.hass, self._area_ids, existing),
+                    data_schema=_room_schema(
+                        self.hass, self._area_ids, existing, derived
+                    ),
                     errors={"base": "invalid_segments"},
                 )
             return self.async_create_entry(
@@ -223,7 +272,7 @@ class VacuumQueueOptionsFlow(config_entries.OptionsFlowWithReload):
             )
         return self.async_show_form(
             step_id="rooms",
-            data_schema=_room_schema(self.hass, self._area_ids, existing),
+            data_schema=_room_schema(self.hass, self._area_ids, existing, derived),
         )
 
     @staticmethod

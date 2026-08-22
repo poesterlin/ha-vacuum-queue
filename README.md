@@ -19,8 +19,15 @@ across Home Assistant restarts.
 1. Add **Vacuum Queue** from Settings → Devices & services.
 2. Select a vacuum, its current-room sensor, and the Home Assistant areas to
    clean.
-3. For each room, enter the tracker state values that identify it. Values are
-   not case-sensitive. Segment IDs are optional and provide a fallback for
+
+If the vacuum exposes its own segment mapping (the robot's segment dialog in
+Home Assistant, required for `vacuum.clean_area` anyway), the room mapping is
+derived from it and setup ends here — tracker values follow that mapping
+automatically, including later renames.
+
+3. Only when derivation is incomplete, a mapping form appears: for each room,
+   enter the tracker state values that identify it. Values are not
+   case-sensitive. Segment IDs are optional and provide a fallback for
    vacuums that do not support `vacuum.clean_area`.
 4. Turn on the room switches and press **Start**.
 

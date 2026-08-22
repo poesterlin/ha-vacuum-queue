@@ -1,6 +1,6 @@
 # ADR-0004: Manual tracker→room map
 
-Status: accepted
+Status: accepted (fallback; see ADR-0010)
 
 ## Context
 Knowing the current room requires bridging raw tracker sensor values (`bad`,

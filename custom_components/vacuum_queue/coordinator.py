@@ -21,6 +21,7 @@ from .const import (
     RESEND_DEBOUNCE_SECONDS,
     VACUUM_RETURN_TO_BASE,
 )
+from .mapping import DerivedMapping, async_derive_mapping
 from .store import VacuumQueueStore
 
 Listener = Callable[[], None]
@@ -57,6 +58,7 @@ class VacuumQueueCoordinator:
         }
 
         self._store = VacuumQueueStore(hass, entry_id)
+        self._derived = DerivedMapping()
         self._switches_on: set[str] = set()
         self._last_cleaned: dict[str, float] = {}
         self._done_this_run: set[str] = set()
@@ -84,6 +86,7 @@ class VacuumQueueCoordinator:
             if area_id in configured_areas
         }
 
+        self._rebuild_derived()
         tracker_state = self.hass.states.get(self.tracker_entity_id)
         self._current_area = self._area_for_tracker_state(
             tracker_state.state if tracker_state else None
@@ -103,6 +106,11 @@ class VacuumQueueCoordinator:
                     self.hass,
                     [self.vacuum_entity_id],
                     self._async_vacuum_changed,
+                ),
+                event_helper.async_track_entity_registry_updated_event(
+                    self.hass,
+                    [self.vacuum_entity_id],
+                    self._async_registry_updated,
                 ),
             )
         )
@@ -252,10 +260,19 @@ class VacuumQueueCoordinator:
             self._schedule_save()
             self._notify()
 
+    @callback
+    def _async_registry_updated(self, event: Event) -> None:
+        """Re-derive the segment mapping after robot-config changes."""
+        self._rebuild_derived()
+
+    def _rebuild_derived(self) -> None:
+        self._derived = async_derive_mapping(self.hass, self.vacuum_entity_id)
+
     def _area_for_tracker_state(self, state: str | None) -> str | None:
         if not state or state in ("unknown", "unavailable"):
             return None
-        return self._match_to_area.get(state.strip().casefold())
+        key = state.strip().casefold()
+        return self._match_to_area.get(key) or self._derived.value_to_area.get(key)
 
     def _complete_room(self, area_id: str) -> None:
         self._done_this_run.add(area_id)
@@ -287,21 +304,28 @@ class VacuumQueueCoordinator:
             await self.hass.services.async_call(
                 "vacuum",
                 "clean_area",
-                {"entity_id": self.vacuum_entity_id, "area_id": areas},
+                {"entity_id": self.vacuum_entity_id, "cleaning_area_id": areas},
                 blocking=True,
             )
             return
         except HomeAssistantError as err:
             LOGGER.warning("clean_area failed for %s: %s", areas, err)
 
-        segment_ids = [
-            segment_id
-            for area_id in areas
-            for segment_id in self._rooms_by_area[area_id].get(CONF_SEGMENT_IDS, [])
-        ]
+        segment_ids: list[str] = []
+        for area_id in areas:
+            room = self._rooms_by_area[area_id]
+            candidates = [
+                *room.get(CONF_SEGMENT_IDS, []),
+                *self._derived.area_to_segments.get(area_id, []),
+            ]
+            segment_ids.extend(
+                str(segment)
+                for segment in candidates
+                if str(segment) not in segment_ids
+            )
         if not segment_ids:
             raise HomeAssistantError(
-                "vacuum.clean_area failed and no fallback segment IDs are configured"
+                "vacuum.clean_area failed and no fallback segment IDs are available"
             )
         await self.hass.services.async_call(
             "vacuum",

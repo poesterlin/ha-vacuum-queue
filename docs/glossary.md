@@ -13,8 +13,9 @@ as a fallback command payload.
 (e.g. `bad`, `klo`, `küche`). Lowercased before matching. Several match values may
 map to the same room.
 
-**Room map** — configured dictionary `match value → area ID`. The user maintains it
-manually in the config/options flow (ADR-0004).
+**Room map** — dictionary `match value → area ID`. Derived automatically from the
+vacuum's segment configuration (segment IDs, names, and slugified names via the
+inverted area mapping, ADR-0010); manually configured match values take precedence.
 
 **Tracker** — any sensor whose state reports where the vacuum currently is
 (e.g. `sensor.roborock_..._current_room`). Resolved to a room via the room map;

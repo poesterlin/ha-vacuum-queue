@@ -12,7 +12,7 @@
       },
       "rooms": {
         "title": "Map tracker values",
-        "description": "Enter the raw tracker values that identify each room. Optional segment IDs are only used as a fallback.",
+        "description": "Shown because the mapping could not be fully derived from the vacuum's segment configuration. Enter the raw tracker values that identify each room. Optional segment IDs are only used as a fallback.",
         "data": {}
       }
     },
