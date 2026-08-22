@@ -1,0 +1,35 @@
+start:
+  name: Start queue
+  description: Start cleaning the selected rooms in least-recently-cleaned order.
+  fields:
+    vacuum_entity_id:
+      name: Vacuum
+      description: Vacuum controlled by this queue.
+      required: true
+      selector:
+        entity:
+          domain: vacuum
+
+skip:
+  name: Skip current room
+  description: Pause, mark the current room complete, and continue the queue.
+  fields:
+    vacuum_entity_id:
+      name: Vacuum
+      description: Vacuum controlled by this queue.
+      required: true
+      selector:
+        entity:
+          domain: vacuum
+
+return_home:
+  name: Return home
+  description: Send the vacuum back to its dock.
+  fields:
+    vacuum_entity_id:
+      name: Vacuum
+      description: Vacuum controlled by this queue.
+      required: true
+      selector:
+        entity:
+          domain: vacuum

@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Vacuum Queue",
+        "description": "Choose a vacuum, its current-room tracker, and the areas it should clean.",
+        "data": {
+          "vacuum_entity_id": "Vacuum",
+          "tracker_entity_id": "Current-room tracker",
+          "area_ids": "Rooms"
+        }
+      },
+      "rooms": {
+        "title": "Map tracker values",
+        "description": "Enter the raw tracker values that identify each room. Optional segment IDs are only used as a fallback.",
+        "data": {}
+      }
+    },
+    "error": {
+      "no_rooms": "Select at least one room.",
+      "invalid_segments": "Segment IDs must be whole numbers separated by commas."
+    },
+    "abort": {
+      "already_configured": "This vacuum is already configured."
+    }
+  }
+}
