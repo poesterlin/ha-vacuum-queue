@@ -271,7 +271,6 @@ class VacuumQueueCard extends HTMLElement {
     style.textContent = `
       :host { display: block; }
       .card { color: var(--primary-text-color); }
-       .eyebrow { color: var(--secondary-text-color); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
        h2 { font-size: 18px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 6px 0 4px; }
        .status { color: var(--secondary-text-color); font-size: 13px; margin-bottom: 18px; }
       .section + .section { margin-top: 24px; }
@@ -313,7 +312,6 @@ class VacuumQueueCard extends HTMLElement {
         return leftOrder - rightOrder || left.entity_id.localeCompare(right.entity_id);
       });
     const roomsSection = element("section", "section");
-    roomsSection.append(element("div", "eyebrow", "VACUUM QUEUE"));
     roomsSection.append(element("h2", "", labels.rooms));
     const skipState = this._state(this._button("skip"));
     roomsSection.append(element("div", "status", this._queueStatus(skipState, roomEntries)));
