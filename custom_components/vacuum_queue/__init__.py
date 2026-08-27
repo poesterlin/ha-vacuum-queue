@@ -15,7 +15,6 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry
-from homeassistant.helpers.event import async_call_later
 
 from .const import (
     CONF_ROOMS,
@@ -93,23 +92,15 @@ def _card_version() -> str:
 async def _register_lovelace_resource(hass: HomeAssistant, lovelace: Any) -> None:
     """Register the card as a Lovelace module resource (storage mode)."""
     url = f"{CARD_PATH}?v={_card_version()}"
-
-    async def _register(_now: Any = None) -> None:
-        if not lovelace.resources.loaded:
-            async_call_later(hass, 5, _register)
+    resources = lovelace.resources
+    for resource in resources.async_items():
+        if resource["url"].split("?")[0] == CARD_PATH:
+            if resource["url"] != url:
+                await resources.async_update_item(
+                    resource["id"], {"res_type": "module", "url": url}
+                )
             return
-        for resource in lovelace.resources.async_items():
-            if resource["url"].split("?")[0] == CARD_PATH:
-                if resource["url"] != url:
-                    await lovelace.resources.async_update_item(
-                        resource["id"], {"res_type": "module", "url": url}
-                    )
-                return
-        await lovelace.resources.async_create_item(
-            {"res_type": "module", "url": url}
-        )
-
-    await _register()
+    await resources.async_create_item({"res_type": "module", "url": url})
 
 
 async def _register_frontend(hass: HomeAssistant) -> None:
@@ -130,11 +121,14 @@ async def _register_frontend(hass: HomeAssistant) -> None:
     except (RuntimeError, ValueError):
         _LOGGER.debug("Static path already registered", exc_info=True)
     lovelace = hass.data.get("lovelace")
-    if lovelace is not None and getattr(lovelace, "mode", None) == "storage":
+    resource_mode = getattr(lovelace, "resource_mode", None)
+    if lovelace is not None and resource_mode == "storage":
         try:
             await _register_lovelace_resource(hass, lovelace)
         except Exception:
-            _LOGGER.warning("Failed to register Lovelace resource, falling back", exc_info=True)
+            _LOGGER.warning(
+                "Failed to register Lovelace resource, falling back", exc_info=True
+            )
             add_extra_js_url(hass, f"{CARD_PATH}?v={_card_version()}")
     else:
         add_extra_js_url(hass, f"{CARD_PATH}?v={_card_version()}")
