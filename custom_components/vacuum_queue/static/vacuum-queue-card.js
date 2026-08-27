@@ -230,7 +230,7 @@ class VacuumQueueCard extends HTMLElement {
   _renderAction(action, icon, label, currentRoom) {
     const button = this._button(action);
     if (!button) return null;
-    const row = element("button", "action");
+    const row = element("button", `action action-${action}`);
     row.type = "button";
     row.append(this._icon(icon));
     const text = element("span", "action-text");
@@ -271,9 +271,7 @@ class VacuumQueueCard extends HTMLElement {
     style.textContent = `
       :host { display: block; }
       .card { color: var(--primary-text-color); }
-       h2 { font-size: 18px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 6px 0 4px; }
        .status { color: var(--secondary-text-color); font-size: 13px; margin-bottom: 18px; }
-      .section + .section { margin-top: 24px; }
       .rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
       button { font: inherit; color: inherit; cursor: pointer; border: 0; }
        .room { min-height: 76px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 10px 13px 10px 10px; text-align: left; transition: background .18s ease, border-color .18s ease; }
@@ -282,9 +280,11 @@ class VacuumQueueCard extends HTMLElement {
        .icon { --mdc-icon-size: 25px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 11px; background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); flex: 0 0 46px; }
        .room.on .icon { background: color-mix(in srgb, black 22%, transparent); }
        .room-name { font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-       .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-       .action { width: 100%; min-height: 61px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 8px 14px 8px 10px; text-align: left; transition: border-color .18s ease; }
-       .action:hover { border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+        .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 20px; }
+        .action { width: 100%; min-height: 61px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 8px 14px 8px 10px; text-align: left; transition: border-color .18s ease; }
+        .action:hover { border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+        .action-start { background: var(--primary-color); border-color: var(--primary-color); color: var(--text-primary-color, white); }
+        .action-start .icon { background: color-mix(in srgb, black 22%, transparent); }
        .action .icon { width: 40px; height: 40px; flex-basis: 40px; --mdc-icon-size: 22px; }
       .action-text { display: grid; gap: 2px; }
       .action-label { font-weight: 600; }
@@ -312,7 +312,6 @@ class VacuumQueueCard extends HTMLElement {
         return leftOrder - rightOrder || left.entity_id.localeCompare(right.entity_id);
       });
     const roomsSection = element("section", "section");
-    roomsSection.append(element("h2", "", labels.rooms));
     const skipState = this._state(this._button("skip"));
     roomsSection.append(element("div", "status", this._queueStatus(skipState, roomEntries)));
     const rooms = element("div", "rooms");
@@ -321,8 +320,6 @@ class VacuumQueueCard extends HTMLElement {
     root.append(roomsSection);
 
     const currentRoom = skipState?.attributes?.current_room;
-    const actionsSection = element("section", "section");
-    actionsSection.append(element("h2", "", labels.actions));
     const actions = element("div", "actions");
     const start = this._renderAction("start", "mdi:play-circle-outline", labels.start);
     const canSkip = skipState?.attributes?.queue_active === true && Boolean(currentRoom);
@@ -340,7 +337,7 @@ class VacuumQueueCard extends HTMLElement {
       if (returnHome) actions.append(returnHome);
     }
     actionsSection.append(actions);
-    root.append(actionsSection);
+    root.append(actions);
     this.shadowRoot.replaceChildren(style, root);
   }
 }
