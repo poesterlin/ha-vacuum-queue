@@ -215,7 +215,9 @@ class VacuumQueueCard extends HTMLElement {
     const room = element("button", `room${isOn ? " on" : ""}`);
     room.type = "button";
     room.append(this._icon(state?.attributes?.icon));
-    room.append(element("span", "room-name", state?.attributes?.friendly_name || entry.entity_id));
+    const roomName =
+      state?.attributes?.room_name || state?.attributes?.friendly_name || entry.entity_id;
+    room.append(element("span", "room-name", roomName));
     room.addEventListener("click", () => this._toggleRoom(entry.entity_id, !isOn));
     return room;
   }

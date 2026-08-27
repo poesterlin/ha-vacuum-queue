@@ -57,9 +57,12 @@ class VacuumQueueRoomSwitch(SwitchEntity):
         return self._coordinator.is_room_on(self._area_id)
 
     @property
-    def extra_state_attributes(self) -> dict[str, int]:
-        """Expose configuration order to the bundled dashboard card."""
-        return {"queue_order": self._order}
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Expose configuration order and room name to dashboards."""
+        return {
+            "queue_order": self._order,
+            "room_name": self._coordinator.room_name(self._area_id),
+        }
 
     async def async_turn_on(self, **kwargs: object) -> None:
         await self._coordinator.handle_room_switch(self._area_id, True)
