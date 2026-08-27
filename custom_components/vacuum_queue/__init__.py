@@ -22,6 +22,7 @@ from .const import (
     CONF_TRACKER_ENTITY,
     CONF_VACUUM_ENTITY,
     DOMAIN,
+    LOGGER,
     PLATFORMS,
     SERVICE_RETURN_HOME,
     SERVICE_SKIP,
@@ -116,18 +117,25 @@ async def _register_frontend(hass: HomeAssistant) -> None:
     hass.data.setdefault(DOMAIN, {})
     if hass.data[DOMAIN].get("frontend_registered"):
         return
-    await hass.http.async_register_static_paths(
-        [
-            StaticPathConfig(
-                f"/api/{DOMAIN}/static",
-                str(Path(__file__).parent / "static"),
-                True,
-            )
-        ]
-    )
+    try:
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    f"/api/{DOMAIN}/static",
+                    str(Path(__file__).parent / "static"),
+                    True,
+                )
+            ]
+        )
+    except (RuntimeError, ValueError):
+        _LOGGER.debug("Static path already registered", exc_info=True)
     lovelace = hass.data.get("lovelace")
     if lovelace is not None and getattr(lovelace, "mode", None) == "storage":
-        await _register_lovelace_resource(hass, lovelace)
+        try:
+            await _register_lovelace_resource(hass, lovelace)
+        except Exception:
+            _LOGGER.warning("Failed to register Lovelace resource, falling back", exc_info=True)
+            add_extra_js_url(hass, f"{CARD_PATH}?v={_card_version()}")
     else:
         add_extra_js_url(hass, f"{CARD_PATH}?v={_card_version()}")
     hass.data[DOMAIN]["frontend_registered"] = True
