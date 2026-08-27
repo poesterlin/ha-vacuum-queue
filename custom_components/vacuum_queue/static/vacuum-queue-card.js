@@ -336,7 +336,6 @@ class VacuumQueueCard extends HTMLElement {
       );
       if (returnHome) actions.append(returnHome);
     }
-    actionsSection.append(actions);
     root.append(actions);
     this.shadowRoot.replaceChildren(style, root);
   }
