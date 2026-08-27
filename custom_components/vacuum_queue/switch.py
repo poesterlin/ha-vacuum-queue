@@ -41,8 +41,12 @@ class VacuumQueueRoomSwitch(SwitchEntity):
         self._remove_listener = coordinator.async_add_listener(self._changed)
         self._attr_unique_id = f"{coordinator.entry_id}_{area_id}"
         self._attr_name = coordinator.room_name(area_id)
-        self._attr_icon = "mdi:home-floor-1"
         self._attr_suggested_area = area_id
+
+    @property
+    def _attr_icon(self) -> str:
+        """Use the icon of the mapped HA area, if one is set."""
+        return self._coordinator.room_icon(self._area_id) or "mdi:home-floor-1"
 
     @property
     def device_info(self) -> DeviceInfo:

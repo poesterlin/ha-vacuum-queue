@@ -10,6 +10,7 @@ from typing import Any
 
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import area_registry
 from homeassistant.helpers import event as event_helper
 
 from .const import (
@@ -112,6 +113,10 @@ class VacuumQueueCoordinator:
                     [self.vacuum_entity_id],
                     self._async_registry_updated,
                 ),
+                self.hass.bus.async_listen(
+                    area_registry.EVENT_AREA_REGISTRY_UPDATED,
+                    self._async_area_registry_changed,
+                ),
             )
         )
 
@@ -150,6 +155,18 @@ class VacuumQueueCoordinator:
         """Return a configured room name, falling back to the area ID."""
         room = self._rooms_by_area.get(area_id, {})
         return str(room.get("name") or area_id)
+
+    def room_icon(self, area_id: str) -> str | None:
+        """Return the configured HA area icon for a room."""
+        area = area_registry.async_get(self.hass).async_get_area(area_id)
+        return area.icon if area else None
+
+    @callback
+    def _async_area_registry_changed(self, event: Event) -> None:
+        """Refresh room entities when their area is updated."""
+        area_id = event.data.get("area_id")
+        if area_id is None or area_id in self._rooms_by_area:
+            self._notify()
 
     def is_room_on(self, area_id: str) -> bool:
         """Return the switch state for one configured room."""
