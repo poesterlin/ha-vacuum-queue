@@ -280,17 +280,17 @@ class VacuumQueueCard extends HTMLElement {
        .icon { --mdc-icon-size: 25px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 11px; background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); flex: 0 0 46px; }
        .room.on .icon { background: color-mix(in srgb, black 22%, transparent); }
        .room-name { font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 20px; }
-        .action { width: 100%; min-height: 61px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 8px 14px 8px 10px; text-align: left; transition: border-color .18s ease; }
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+        .action { flex: 1 1 135px; min-height: 48px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 18%, transparent); border-radius: 10px; background: transparent; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 12px; text-align: center; transition: border-color .18s ease, background .18s ease; }
         .action:hover { border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
         .action-start { background: var(--primary-color); border-color: var(--primary-color); color: var(--text-primary-color, white); }
-        .action-start .icon { background: color-mix(in srgb, black 22%, transparent); }
-       .action .icon { width: 40px; height: 40px; flex-basis: 40px; --mdc-icon-size: 22px; }
-      .action-text { display: grid; gap: 2px; }
-      .action-label { font-weight: 600; }
-      .action-subtitle { color: var(--secondary-text-color); font-size: .9em; }
+        .action-start .icon { background: transparent; }
+       .action .icon { width: 30px; height: 30px; flex: 0 0 30px; --mdc-icon-size: 20px; background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); }
+       .action-text { display: grid; gap: 1px; min-width: 0; }
+       .action-label { font-size: 13px; font-weight: 700; white-space: nowrap; }
+       .action-subtitle { color: var(--secondary-text-color); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .message { color: var(--secondary-text-color); padding: 8px 0; }
-       @media (max-width: 420px) { .rooms, .actions { grid-template-columns: 1fr; } }
+        @media (max-width: 420px) { .rooms { grid-template-columns: 1fr; } .action { flex-basis: 100%; } }
     `;
 
     if (this._error) {
