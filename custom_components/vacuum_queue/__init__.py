@@ -28,21 +28,27 @@ from .coordinator import VacuumQueueCoordinator
 SERVICE_SCHEMA = vol.Schema({vol.Required(CONF_VACUUM_ENTITY): cv.entity_id})
 
 
+async def _register_frontend(hass: HomeAssistant) -> None:
+    """Serve the Lovelace card and register it with the frontend."""
+    hass.data.setdefault(DOMAIN, {})
+    if hass.data[DOMAIN].get("frontend_registered"):
+        return
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                f"/api/{DOMAIN}/static",
+                str(Path(__file__).parent / "static"),
+                True,
+            )
+        ]
+    )
+    add_extra_js_url(hass, f"/api/{DOMAIN}/static/vacuum-queue-card.js")
+    hass.data[DOMAIN]["frontend_registered"] = True
+
+
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Register integration-wide services and frontend resources."""
-    hass.data.setdefault(DOMAIN, {})
-    if not hass.data[DOMAIN].get("frontend_registered"):
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    f"/api/{DOMAIN}/static",
-                    str(Path(__file__).parent / "static"),
-                    True,
-                )
-            ]
-        )
-        add_extra_js_url(hass, f"/api/{DOMAIN}/static/vacuum-queue-card.js")
-        hass.data[DOMAIN]["frontend_registered"] = True
+    await _register_frontend(hass)
 
     if hass.data[DOMAIN].get("services_registered"):
         return True
@@ -91,6 +97,7 @@ async def _call_coordinators(
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up one Vacuum Queue config entry."""
+    await _register_frontend(hass)
     settings = {**entry.data, **entry.options}
     coordinator = VacuumQueueCoordinator(
         hass,
