@@ -11,7 +11,13 @@ const DEFAULT_LABELS = {
   no_current_room: "No current room",
   no_device: "No Vacuum Queue device found",
   multiple_devices: "Set device_id because multiple queues exist",
-  loading: "Loading Vacuum Queue…",
+  loading: "Loading Vacuum Queue...",
+  queue_running: "Queue is running",
+  cleaning: "Cleaning {room}",
+  ready: "Ready when you are",
+  queued_one: "1 room queued",
+  queued_many: "{count} rooms queued",
+  room_hint: "Tap a room to add or remove it from the next run.",
 };
 
 function element(tag, className, text) {
@@ -244,6 +250,20 @@ class VacuumQueueCard extends HTMLElement {
     return row;
   }
 
+  _queueStatus(skipState, roomEntries) {
+    const labels = this._labels();
+    if (skipState?.attributes?.queue_active) {
+      const currentRoom = skipState.attributes.current_room;
+      return currentRoom
+        ? labels.cleaning.replace("{room}", currentRoom)
+        : labels.queue_running;
+    }
+    const queued = roomEntries.filter((entry) => this._state(entry)?.state === "on").length;
+    return queued
+      ? (queued === 1 ? labels.queued_one : labels.queued_many.replace("{count}", queued))
+      : labels.ready;
+  }
+
   _render() {
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     const labels = this._labels();
@@ -252,22 +272,28 @@ class VacuumQueueCard extends HTMLElement {
     style.textContent = `
       :host { display: block; }
       .card { color: var(--primary-text-color); }
-      h2 { font-size: 24px; font-weight: 400; margin: 4px 0 14px; }
+       .eyebrow { color: var(--secondary-text-color); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+       h2 { font-size: 18px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 6px 0 4px; }
+       .status { color: var(--secondary-text-color); font-size: 13px; margin-bottom: 18px; }
       .section + .section { margin-top: 24px; }
       .rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
       button { font: inherit; color: inherit; cursor: pointer; border: 0; }
-      .room { min-height: 68px; border-radius: 999px; background: var(--ha-card-background, var(--card-background-color)); display: flex; align-items: center; gap: 12px; padding: 8px 18px 8px 10px; text-align: left; transition: background .15s; }
-      .room.on { background: var(--primary-color); color: var(--text-primary-color, white); }
-      .icon { --mdc-icon-size: 28px; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); flex: 0 0 48px; }
-      .room.on .icon { background: color-mix(in srgb, black 75%, transparent); }
-      .room-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .actions { display: grid; gap: 12px; }
-      .action { width: 100%; min-height: 68px; border-radius: 999px; background: var(--ha-card-background, var(--card-background-color)); display: flex; align-items: center; gap: 12px; padding: 8px 22px 8px 10px; text-align: left; }
+       .room { min-height: 76px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 10px 13px 10px 10px; text-align: left; transition: transform .18s ease, background .18s ease, border-color .18s ease; }
+       .room:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+       .room.on { background: var(--primary-color); border-color: var(--primary-color); color: var(--text-primary-color, white); }
+       .icon { --mdc-icon-size: 25px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 11px; background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); flex: 0 0 46px; }
+       .room.on .icon { background: color-mix(in srgb, black 22%, transparent); }
+       .room-name { font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+       .rooms-note { color: var(--secondary-text-color); font-size: 12px; margin-top: 9px; }
+       .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+       .action { width: 100%; min-height: 61px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 8px 14px 8px 10px; text-align: left; transition: transform .18s ease, border-color .18s ease; }
+       .action:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+       .action .icon { width: 40px; height: 40px; flex-basis: 40px; --mdc-icon-size: 22px; }
       .action-text { display: grid; gap: 2px; }
       .action-label { font-weight: 600; }
       .action-subtitle { color: var(--secondary-text-color); font-size: .9em; }
       .message { color: var(--secondary-text-color); padding: 8px 0; }
-      @media (max-width: 420px) { .rooms { grid-template-columns: 1fr; } }
+       @media (max-width: 420px) { .rooms, .actions { grid-template-columns: 1fr; } }
     `;
 
     if (this._error) {
@@ -289,19 +315,25 @@ class VacuumQueueCard extends HTMLElement {
         return leftOrder - rightOrder || left.entity_id.localeCompare(right.entity_id);
       });
     const roomsSection = element("section", "section");
+    roomsSection.append(element("div", "eyebrow", "VACUUM QUEUE"));
     roomsSection.append(element("h2", "", labels.rooms));
+    const skipState = this._state(this._button("skip"));
+    roomsSection.append(element("div", "status", this._queueStatus(skipState, roomEntries)));
     const rooms = element("div", "rooms");
     roomEntries.forEach((entry) => rooms.append(this._renderRoom(entry)));
     roomsSection.append(rooms);
+    roomsSection.append(element("div", "rooms-note", labels.room_hint));
     root.append(roomsSection);
 
-    const skipState = this._state(this._button("skip"));
     const currentRoom = skipState?.attributes?.current_room;
     const actionsSection = element("section", "section");
     actionsSection.append(element("h2", "", labels.actions));
     const actions = element("div", "actions");
     const start = this._renderAction("start", "mdi:play-circle-outline", labels.start);
-    const skip = this._renderAction("skip", "mdi:skip-next", labels.skip, currentRoom);
+    const canSkip = skipState?.attributes?.queue_active === true && Boolean(currentRoom);
+    const skip = canSkip
+      ? this._renderAction("skip", "mdi:skip-next", labels.skip, currentRoom)
+      : null;
     if (start) actions.append(start);
     if (skip) actions.append(skip);
     if (this._config.show_return_home) {

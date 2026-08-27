@@ -42,10 +42,10 @@ class VacuumQueueRoomSwitch(SwitchEntity):
         self._attr_unique_id = f"{coordinator.entry_id}_{area_id}"
         self._attr_name = coordinator.room_name(area_id)
         self._attr_suggested_area = area_id
+        self._attr_icon = self._room_icon()
 
-    @property
-    def _attr_icon(self) -> str:
-        """Use the icon of the mapped HA area, if one is set."""
+    def _room_icon(self) -> str:
+        """Return the configured area icon, with a room fallback."""
         return self._coordinator.room_icon(self._area_id) or "mdi:home-floor-1"
 
     @property
@@ -76,6 +76,7 @@ class VacuumQueueRoomSwitch(SwitchEntity):
 
     @callback
     def _changed(self) -> None:
+        self._attr_icon = self._room_icon()
         self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self) -> None:
