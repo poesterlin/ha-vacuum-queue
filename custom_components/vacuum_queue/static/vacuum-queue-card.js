@@ -277,15 +277,15 @@ class VacuumQueueCard extends HTMLElement {
       .section + .section { margin-top: 24px; }
       .rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
       button { font: inherit; color: inherit; cursor: pointer; border: 0; }
-       .room { min-height: 76px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 10px 13px 10px 10px; text-align: left; transition: transform .18s ease, background .18s ease, border-color .18s ease; }
-       .room:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+       .room { min-height: 76px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 10px 13px 10px 10px; text-align: left; transition: background .18s ease, border-color .18s ease; }
+       .room:hover { border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
        .room.on { background: var(--primary-color); border-color: var(--primary-color); color: var(--text-primary-color, white); }
        .icon { --mdc-icon-size: 25px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 11px; background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); flex: 0 0 46px; }
        .room.on .icon { background: color-mix(in srgb, black 22%, transparent); }
        .room-name { font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
        .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-       .action { width: 100%; min-height: 61px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 8px 14px 8px 10px; text-align: left; transition: transform .18s ease, border-color .18s ease; }
-       .action:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
+       .action { width: 100%; min-height: 61px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 8px 14px 8px 10px; text-align: left; transition: border-color .18s ease; }
+       .action:hover { border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
        .action .icon { width: 40px; height: 40px; flex-basis: 40px; --mdc-icon-size: 22px; }
       .action-text { display: grid; gap: 2px; }
       .action-label { font-weight: 600; }
