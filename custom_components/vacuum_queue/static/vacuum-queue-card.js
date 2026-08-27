@@ -30,6 +30,7 @@ class VacuumQueueCard extends HTMLElement {
     this._deviceId = null;
     this._entities = [];
     this._discoveryKey = null;
+    this._discoveryDone = false;
     this._error = null;
     this._render();
   }
@@ -61,10 +62,22 @@ class VacuumQueueCard extends HTMLElement {
     if (!this._hass || !this._config) return;
 
     const requestedDevice = this._config.device_id || "auto";
-    if (this._discoveryKey === requestedDevice && this._entities.length) return;
+    if (this._discoveryKey === requestedDevice && this._discoveryDone) return;
     this._discoveryKey = requestedDevice;
+    this._discoveryDone = false;
 
     try {
+      let queues;
+      try {
+        queues = await this._callWebSocket({ type: "vacuum_queue/list" });
+      } catch (error) {
+        queues = undefined;
+      }
+      if (Array.isArray(queues)) {
+        this._applyQueues(queues);
+        return;
+      }
+
       const [devicesResponse, entitiesResponse] = await Promise.all([
         this._callWebSocket({ type: "config/device_registry/list" }),
         this._callWebSocket({ type: "config/entity_registry/list" }),
@@ -88,16 +101,12 @@ class VacuumQueueCard extends HTMLElement {
       } else if (queueDevices.length === 1) {
         device = queueDevices[0];
       } else if (queueDevices.length > 1) {
-        this._error = DEFAULT_LABELS.multiple_devices;
-        this._entities = [];
-        this._render();
+        this._setError(DEFAULT_LABELS.multiple_devices);
         return;
       }
 
       if (!device) {
-        this._error = DEFAULT_LABELS.no_device;
-        this._entities = [];
-        this._render();
+        this._setError(DEFAULT_LABELS.no_device);
         return;
       }
 
@@ -109,13 +118,60 @@ class VacuumQueueCard extends HTMLElement {
             (entry.domain === "switch" || entry.domain === "button"),
         )
         .sort((left, right) => left.entity_id.localeCompare(right.entity_id));
-      this._error = null;
-      this._render();
+      this._finishDiscovery();
     } catch (error) {
-      this._error = error.message || "Unable to discover Vacuum Queue entities";
-      this._entities = [];
-      this._render();
+      this._setError(error.message || "Unable to discover Vacuum Queue entities");
     }
+  }
+
+  _applyQueues(queues) {
+    const target = this._config.device_id
+      ? queues.find((queue) => queue.device_id === this._config.device_id)
+      : queues.length === 1
+        ? queues[0]
+        : null;
+
+    if (queues.length > 1 && !this._config.device_id) {
+      this._setError(DEFAULT_LABELS.multiple_devices);
+      return;
+    }
+    if (!target) {
+      this._setError(DEFAULT_LABELS.no_device);
+      return;
+    }
+
+    this._deviceId = target.device_id;
+    this._entities = [
+      ...(target.switches || []).map((entry) => ({
+        entity_id: entry.entity_id,
+        domain: "switch",
+        unique_id: entry.unique_id,
+      })),
+      ...(target.buttons || []).map((entry) => ({
+        entity_id: entry.entity_id,
+        domain: "button",
+        unique_id: entry.unique_id,
+      })),
+    ].sort((left, right) => left.entity_id.localeCompare(right.entity_id));
+    this._finishDiscovery();
+  }
+
+  _finishDiscovery() {
+    this._discoveryDone = true;
+    if (!this._entities.length) {
+      this._error = `No Vacuum Queue switch or button entities found (device ${this._deviceId || "unknown"})`;
+    } else {
+      this._error = null;
+    }
+    this._render();
+  }
+
+  _setError(message) {
+    this._error = message;
+    this._entities = [];
+    this._deviceId = null;
+    this._discoveryDone = true;
+    this._render();
   }
 
   _labels() {

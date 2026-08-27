@@ -7,12 +7,14 @@ from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components import websocket_api
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry
 from homeassistant.helpers.event import async_call_later
 
 from .const import (
@@ -30,6 +32,55 @@ from .coordinator import VacuumQueueCoordinator
 SERVICE_SCHEMA = vol.Schema({vol.Required(CONF_VACUUM_ENTITY): cv.entity_id})
 
 CARD_PATH = "/api/{}/static/vacuum-queue-card.js".format(DOMAIN)
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/list"})
+@websocket_api.async_response
+async def _ws_list(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the switch/button entities of every Vacuum Queue entry."""
+    er = entity_registry.async_get(hass)
+    queues = []
+    for key, coordinator in hass.data.get(DOMAIN, {}).items():
+        if not isinstance(coordinator, VacuumQueueCoordinator):
+            continue
+        switches = []
+        buttons = []
+        device_id = None
+        for entity in er.entities.values():
+            if entity.config_entry_id != coordinator.entry_id:
+                continue
+            if entity.domain == "switch":
+                switches.append(
+                    {"entity_id": entity.entity_id, "unique_id": entity.unique_id}
+                )
+                device_id = device_id or entity.device_id
+            elif entity.domain == "button":
+                buttons.append(
+                    {"entity_id": entity.entity_id, "unique_id": entity.unique_id}
+                )
+                device_id = device_id or entity.device_id
+        queues.append(
+            {
+                "device_id": device_id,
+                "vacuum_entity_id": coordinator.vacuum_entity_id,
+                "switches": sorted(switches, key=lambda item: item["entity_id"]),
+                "buttons": sorted(buttons, key=lambda item: item["entity_id"]),
+            }
+        )
+    connection.send_result(msg["id"], queues)
+
+
+async def _register_ws(hass: HomeAssistant) -> None:
+    """Register the WebSocket API used by the bundled card."""
+    hass.data.setdefault(DOMAIN, {})
+    if hass.data[DOMAIN].get("ws_registered"):
+        return
+    websocket_api.async_register_command(hass, _ws_list)
+    hass.data[DOMAIN]["ws_registered"] = True
 
 
 def _card_version() -> str:
@@ -85,6 +136,7 @@ async def _register_frontend(hass: HomeAssistant) -> None:
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Register integration-wide services and frontend resources."""
     await _register_frontend(hass)
+    await _register_ws(hass)
 
     if hass.data[DOMAIN].get("services_registered"):
         return True
@@ -134,6 +186,7 @@ async def _call_coordinators(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up one Vacuum Queue config entry."""
     await _register_frontend(hass)
+    await _register_ws(hass)
     settings = {**entry.data, **entry.options}
     coordinator = VacuumQueueCoordinator(
         hass,
