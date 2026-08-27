@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.event import async_call_later
 
 from .const import (
     CONF_ROOMS,
@@ -26,6 +28,36 @@ from .const import (
 from .coordinator import VacuumQueueCoordinator
 
 SERVICE_SCHEMA = vol.Schema({vol.Required(CONF_VACUUM_ENTITY): cv.entity_id})
+
+CARD_PATH = "/api/{}/static/vacuum-queue-card.js".format(DOMAIN)
+
+
+def _card_version() -> str:
+    """Return the manifest version for cache-busting the card URL."""
+    manifest = json.loads((Path(__file__).parent / "manifest.json").read_text())
+    return str(manifest.get("version", "0"))
+
+
+async def _register_lovelace_resource(hass: HomeAssistant, lovelace: Any) -> None:
+    """Register the card as a Lovelace module resource (storage mode)."""
+    url = f"{CARD_PATH}?v={_card_version()}"
+
+    async def _register(_now: Any = None) -> None:
+        if not lovelace.resources.loaded:
+            async_call_later(hass, 5, _register)
+            return
+        for resource in lovelace.resources.async_items():
+            if resource["url"].split("?")[0] == CARD_PATH:
+                if resource["url"] != url:
+                    await lovelace.resources.async_update_item(
+                        resource["id"], {"res_type": "module", "url": url}
+                    )
+                return
+        await lovelace.resources.async_create_item(
+            {"res_type": "module", "url": url}
+        )
+
+    await _register()
 
 
 async def _register_frontend(hass: HomeAssistant) -> None:
@@ -42,7 +74,11 @@ async def _register_frontend(hass: HomeAssistant) -> None:
             )
         ]
     )
-    add_extra_js_url(hass, f"/api/{DOMAIN}/static/vacuum-queue-card.js")
+    lovelace = hass.data.get("lovelace")
+    if lovelace is not None and getattr(lovelace, "mode", None) == "storage":
+        await _register_lovelace_resource(hass, lovelace)
+    else:
+        add_extra_js_url(hass, f"{CARD_PATH}?v={_card_version()}")
     hass.data[DOMAIN]["frontend_registered"] = True
 
 

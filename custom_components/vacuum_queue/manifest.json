@@ -3,11 +3,11 @@
     "name": "Vacuum Queue",
     "codeowners": ["@poesterlin"],
     "config_flow": true,
-    "dependencies": ["http", "frontend"],
+    "dependencies": ["frontend", "http", "lovelace"],
     "documentation": "https://github.com/poesterlin/ha-vacuum-queue",
     "integration_type": "helper",
     "iot_class": "calculated",
     "issue_tracker": "https://github.com/poesterlin/ha-vacuum-queue/issues",
     "requirements": [],
-    "version": "0.2.1"
+    "version": "0.2.2"
 }
