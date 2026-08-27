@@ -17,7 +17,6 @@ const DEFAULT_LABELS = {
   ready: "Ready when you are",
   queued_one: "1 room queued",
   queued_many: "{count} rooms queued",
-  room_hint: "Tap a room to add or remove it from the next run.",
 };
 
 function element(tag, className, text) {
@@ -284,7 +283,6 @@ class VacuumQueueCard extends HTMLElement {
        .icon { --mdc-icon-size: 25px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 11px; background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); flex: 0 0 46px; }
        .room.on .icon { background: color-mix(in srgb, black 22%, transparent); }
        .room-name { font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-       .rooms-note { color: var(--secondary-text-color); font-size: 12px; margin-top: 9px; }
        .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
        .action { width: 100%; min-height: 61px; border: 1px solid color-mix(in srgb, var(--primary-text-color) 12%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--ha-card-background, var(--card-background-color)) 92%, var(--primary-text-color)); display: flex; align-items: center; gap: 11px; padding: 8px 14px 8px 10px; text-align: left; transition: transform .18s ease, border-color .18s ease; }
        .action:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary-color) 55%, transparent); }
@@ -322,7 +320,6 @@ class VacuumQueueCard extends HTMLElement {
     const rooms = element("div", "rooms");
     roomEntries.forEach((entry) => rooms.append(this._renderRoom(entry)));
     roomsSection.append(rooms);
-    roomsSection.append(element("div", "rooms-note", labels.room_hint));
     root.append(roomsSection);
 
     const currentRoom = skipState?.attributes?.current_room;
