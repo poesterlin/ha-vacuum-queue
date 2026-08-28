@@ -17,7 +17,9 @@ The coordinator must finish the mapped current room before replacing the device'
 active command. Queue mutations while that room is in progress are marked
 pending, and the remaining queue is sent after the tracker transitions away from
 the current room. This prevents adding a room from interrupting a partly-cleaned
-room. Removing the current room is the explicit exception: it uses skip semantics
+room. Before the updated queue is issued, the device is paused so the running
+command can be safely replaced; the new `clean_area` then resumes it. Removing
+the current room is the explicit exception: it uses skip semantics
 (pause → mark done → resend). Natural progression between rooms does not resend
 unless a mutation is pending.
 

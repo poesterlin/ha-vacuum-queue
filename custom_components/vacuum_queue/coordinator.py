@@ -372,6 +372,10 @@ class VacuumQueueCoordinator:
         try:
             await asyncio.sleep(RESEND_DEBOUNCE_SECONDS)
             if self._run_active and self._is_cleaning():
+                # The current mapped room has finished. Pause so the device's
+                # active command can be safely replaced with the updated queue
+                # (adding a room must not interrupt a partly-cleaned room).
+                await self._pause()
                 await self._send_remaining_or_return()
         except asyncio.CancelledError:
             raise
