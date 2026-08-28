@@ -327,7 +327,7 @@ class VacuumQueueCard extends HTMLElement {
       : null;
     if (start) actions.append(start);
     if (skip) actions.append(skip);
-    if (this._config.show_return_home) {
+    if (this._config.show_return_home && skipState?.attributes?.queue_active === true) {
       const returnHome = this._renderAction(
         "return_home",
         "mdi:home-import-outline",
