@@ -14,7 +14,6 @@ const DEFAULT_LABELS = {
   loading: "Loading Vacuum Queue...",
   queue_running: "Queue is running",
   cleaning: "Cleaning {room}",
-  ready: "Ready when you are",
   queued_one: "1 room queued",
   queued_many: "{count} rooms queued",
 };
@@ -260,7 +259,7 @@ class VacuumQueueCard extends HTMLElement {
     const queued = roomEntries.filter((entry) => this._state(entry)?.state === "on").length;
     return queued
       ? (queued === 1 ? labels.queued_one : labels.queued_many.replace("{count}", queued))
-      : labels.ready;
+      : "";
   }
 
   _render() {
