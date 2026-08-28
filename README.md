@@ -52,6 +52,8 @@ The integration includes a custom Lovelace card that registers itself
 automatically. After installing (or updating) the integration, restart Home
 Assistant, then add one card to the dashboard:
 
+![Vacuum Queue dashboard card](brand/card-screenshot.png)
+
 ```yaml
 type: custom:vacuum-queue-card
 show_return_home: false
